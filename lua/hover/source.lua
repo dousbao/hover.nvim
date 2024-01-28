@@ -24,6 +24,9 @@ function M.add(source)
 	else
 		table.insert(sources, source)
 	end
+
+	-- register buffer
+	require("hover.window").make_buf(source.name)
 end
 
 function M.snapshot(filter)
