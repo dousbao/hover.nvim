@@ -26,8 +26,19 @@ function M.add(source)
 	end
 end
 
-function M.snapshot()
-	return vim.deepcopy(sources)
+function M.snapshot(filter)
+	vim.validate({
+		filter = { filter, "function" }
+	})
+
+	local snap = {}
+	for _, s in ipairs(sources) do
+		if filter(s) then
+			table.insert(snap, vim.deepcopy(s))
+		end
+	end
+
+	return snap
 end
 
 return M
