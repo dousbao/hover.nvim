@@ -9,9 +9,11 @@ local default = {
 		zindex = 50,
 		anchor_bias = "auto",
 		max_width = 15,
-		wrap = true,
-		winblend = 20,
-		winhighlight = "",
+		addition = {
+			wrap = true,
+			winblend = 20,
+			winhighlight = "",
+		}
 	},
 
 	popup_event = { "CursorHold" },
