@@ -3,9 +3,7 @@ local M = {}
 
 M.name = "diagnostic"
 M.priority = cfg.source.diagnostic.priority
-M.enabled = cfg.source.diagnostic.enabled or function()
-	return not vim.diagnostic.is_disabled()
-end
+M.enabled = cfg.source.diagnostic.enabled
 M.fetch = function(env)
 	local cursor = vim.api.nvim_win_get_cursor(0)
 	local line_diags = vim.diagnostic.get(env.buf, { lnum = cursor[1] - 1 })

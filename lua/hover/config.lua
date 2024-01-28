@@ -21,7 +21,9 @@ local default = {
 
 	source = {
 		diagnostic = {
-			enabled = true,
+			enabled = function()
+				return not vim.diagnostic.is_disabled()
+			end,
 			priority = 50,
 			filter = function(diag)
 				return diag.severity <= vim.diagnostic.severity.HINT

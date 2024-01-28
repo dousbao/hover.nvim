@@ -5,7 +5,7 @@ function M.add(source)
 	vim.validate({
 		name = { source.name, "string" },
 		priority = { source.priority, "number" },
-		enabled = { source.enabled, { "boolean", "number" } },
+		enabled = { source.enabled, { "boolean", "function" } },
 		fetch = { source.fetch, "function" }
 	})
 
