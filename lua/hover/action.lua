@@ -18,7 +18,7 @@ end
 local function on_popup(env)
 	if not vim.tbl_isempty(sources) then
 		for _, src in ipairs(sources) do
-			local ok, texts = pcall(src.fetch(env))
+			local ok, texts = pcall(src.fetch, env)
 			if ok and texts ~= "" then
 				window.overwrite_buf(src.name, texts)
 			end
