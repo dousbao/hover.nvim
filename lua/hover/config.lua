@@ -1,12 +1,10 @@
 local M = {}
-
+local current = nil
 local default = {
 	window = {
 		max_width = 15,
 	}
 }
-
-local current = nil
 
 function M.get()
 	if current == nil then
