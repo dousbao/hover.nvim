@@ -17,14 +17,19 @@ end
 
 local function on_popup(env)
 	if not vim.tbl_isempty(sources) then
-		for _, src in ipairs(sources) do
+		active_index = 0
+
+		for i, src in ipairs(sources) do
 			local ok, texts = pcall(src.fetch, env)
 			if ok and texts ~= "" then
 				window.overwrite_buf(src.name, texts)
+				active_index = active_index == 0 and i or active_index
 			end
 		end
-		active_index = 1
-		window.display_buf(sources[active_index].name)
+
+		if active_index ~= 0 then
+			window.display_buf(sources[active_index].name)
+		end
 	end
 
 	recover_au_id = vim.api.nvim_create_autocmd(cfg.close_event, {
