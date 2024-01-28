@@ -13,7 +13,7 @@ function M.add(source)
 	local pos = -1
 	for i, s in ipairs(sources) do
 		if source.name == s.name then
-			error("trying to add source with name already exist: " .. source.name)
+			error("duplicate source name: " .. source.name)
 		elseif pos == -1 and source.priority < s.priority then
 			pos = i
 		end
