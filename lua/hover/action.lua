@@ -69,11 +69,8 @@ function M.next()
 		return
 	end
 
-	if sources[active_index + 1] == nil then
-		active_index = 1
-	else
-		active_index = active_index + 1
-	end
+	active_index = sources[active_index + 1] == nil
+		and 1 or active_index + 1
 
 	window.display_buf(sources[active_index].name)
 end
@@ -83,11 +80,8 @@ function M.prev()
 		return
 	end
 
-	if active_index == 1 then
-		active_index = #sources
-	else
-		active_index = active_index - 1
-	end
+	active_index = active_index == 1
+		and #sources or active_index - 1
 
 	window.display_buf(sources[active_index].name)
 end
