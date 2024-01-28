@@ -58,4 +58,18 @@ function M.parse_highlight_inlined_text(text)
 	return lines, highlights, window
 end
 
+function M.severity_to_string(severity)
+	if severity == vim.diagnostic.severity.ERROR then
+		return "Error"
+	elseif severity == vim.diagnostic.severity.WARN then
+		return "Warn"
+	elseif severity == vim.diagnostic.severity.INFO then
+		return "Info"
+	elseif severity == vim.diagnostic.severity.HINT then
+		return "Hint"
+	else
+		return "N/A"
+	end
+end
+
 return M
