@@ -2,8 +2,20 @@ local M = {}
 local current = nil
 local default = {
 	window = {
+		offset_x = 0,
+		offset_y = 0,
+		border = "",
+		focusable = false,
+		zindex = 50,
+		anchor_bias = "auto",
 		max_width = 15,
-	}
+		wrap = true,
+		winblend = 20,
+		winhighlight = "",
+	},
+
+	popup_event = { "CursorHold" },
+	close_event = { "CursorMoved", "CursorMovedI" },
 }
 
 function M.get()
