@@ -8,7 +8,7 @@ local default = {
 		focusable = false,
 		zindex = 50,
 		anchor_bias = "auto",
-		max_width = 15,
+		max_width = 30,
 		addition = {
 			wrap = true,
 			winblend = 20,
@@ -18,6 +18,21 @@ local default = {
 
 	popup_event = { "CursorHold" },
 	close_event = { "CursorMoved", "CursorMovedI" },
+
+	source = {
+		diagnostic = {
+			enabled = true,
+			priority = 50,
+			filter = function(diag)
+				return diag.severity <= vim.diagnostic.severity.HINT
+			end,
+			format = function(index, diag)
+				local severity = require("hover.utils").severity_to_string(diag.severity)
+				return string.format("%d: <%s>%s</> [%s]\n",
+					index, "DiagnosticFloating" .. severity, diag.message, severity)
+			end
+		}
+	}
 }
 
 function M.get()
