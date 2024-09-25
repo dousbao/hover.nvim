@@ -1,0 +1,382 @@
+*hover.txt*			A simple hover plugin satisfied all your need
+======================================================================
+CONTENTS											*hover-contents*
+
+	1. Introduction...............................|hover-intro|
+	2. Configuration..............................|hover-config|
+	3. Usage......................................|hover-usage|
+	4. Commands...................................|hover-commands|
+	5. Callback...................................|hover-callback|
+	6. Source.....................................|hover-source|
+	7. License....................................|hover-license|
+
+======================================================================
+1. Introduction										*hover-intro*
+======================================================================
+
+I was always looking for a hover plugin, which support multi-source display, 
+asynchronous fetching, pinning, unpinning, scrolling, etc. But I failed. So I write my own.
+
+Hover.nvim is a lightweight, HIGHLY customizable and well-structured plugin.
+If you are not a fan of using mouse with neovim, then this is the right hover plugin 
+for you.
+
+Hover.nvim manages a sequence of extensible sources, each representing a different 
+type of information that can be fetched. These sources can include diagnostics, 
+documentation, function signatures, GitHub information, remote LSP responses, and more. 
+The fetched content is displayed in a dedicated multi-page-supported window.
+
+Users can easily switch between these pages or scroll when the content exceeds 
+the window size. Additionally, you can pin the hover window, preventing it from closing 
+when the cursor moves, allowing for uninterrupted browsing of information.
+
+======================================================================
+2. Configuration 									*hover-config*
+======================================================================
+
+The default configs for hover.nvim is as follow:
+
+>lua
+local helper = {								-- explained in later secion
+	window = require("hover.helper.window"),
+	action = require("hover.helper.action"),
+	diagnostic = require("hover.helper.diagnostic"),
+	document = require("hover.helper.document"),
+}
+
+-- window apperance
+window = {
+	offset_x = 0,								-- see :help nvim_open_win
+	offset_y = 0,
+	border = "single",
+	focusable = false,
+	zindex = 50,
+	relative = "cursor",
+	anchor_bias = "auto",
+
+	max_width = 40,								-- maximum witdth of window
+	max_height = 5,								-- maximum height of window
+	min_width = 10,								-- minimum width of window.
+	scrolloff = 2,								-- see :help scrolloff
+
+	-- callback after window created
+	on_create = {
+		helper.window.win_set_additional_opts 	-- some defaults window options. feel free to overwrite
+	},
+
+	-- callback after window's content updated
+	-- scrolling does not count as content update
+	on_update = {
+		helper.window.win_update_header,		-- default function that set header
+		helper.window.win_update_footer			-- default function that set footer
+	},
+},
+
+-- callbacks. except stop/hide, all callbacks are called only after action is complete.
+action = {
+	on_start = {},
+	on_stop = {},
+	on_next = {},
+	on_prev = {},
+	on_pin = { helper.action.win_goto_top_right },
+	on_unpin = { helper.action.win_goto_cursor },
+	on_hide = {},
+	on_scroll = { helper.action.win_update_footer }
+},
+
+popup_event = { "CursorHold" },									-- events that start a session
+close_event = { "CursorMoved", "CursorMovedI", "InsertEnter" },	-- events that terminate a session
+
+-- a list of sources. add your own source to this table
+source = {
+	diagnostic = {							-- diagnosis from vim.diagnostic.get
+		name = "diagnostic",
+		enable = helper.diagnostic.enable,
+		priority = 50,
+		placeholder = "[loading...]",
+		fetch = helper.diagnostic.fetch,
+		filter = helper.diagnostic.filter,
+		format = helper.diagnostic.format,
+	},
+	document = {							-- textDocument/hover
+		name = "document",
+		enable = helper.document.enable,
+		priority = 60,
+		placeholder = "[loading...]",
+		fetch = helper.document.fetch
+	}
+}
+<lua
+
+                                        *window.offset_x*
+offset_x			number (default: 0)
+	Horizontal offset for the hover window.
+	
+                                        *window.offset_y*
+offset_y			number (default: 0)
+	Vertical offset for the hover window.
+
+                                        *window.border*
+border              string (default: "single")
+    Border style of the window. Possible values are "none", "single", 
+    "double", "rounded", "solid", and "shadow".
+
+                                        *window.focusable*
+focusable           boolean (default: false)
+    Determines whether the hover window is focusable.
+
+                                        *window.zindex*
+zindex              number (default: 50)
+    The stacking order of the hover window. Windows with higher zindex 
+    appear on top of windows with lower zindex.
+
+                                        *window.relative*
+relative            string (default: "cursor")
+    Determines how the window is positioned relative to something. 
+    Can be "cursor", "win", or "editor".
+
+                                        *window.anchor_bias*
+anchor_bias         string (default: "auto")
+    Determines the anchoring position of the hover window. If set to "auto", 
+    the anchor will be chosen automatically.
+
+                                        *window.max_width*
+max_width           number (default: 40)
+    The maximum width of the hover window.
+
+                                        *window.max_height*
+max_height          number (default: 5)
+    The maximum height of the hover window.
+
+                                        *window.min_width*
+min_width           number (default: 10)
+    The minimum width of the hover window.
+
+                                        *window.scrolloff*
+scrolloff           number (default: 2)
+    Determines the number of lines before scrolling occurs.
+
+                                        *window.on_create*
+on_create           function[] (default: {helper.window.win_set_additional_opts})
+    A list of functions that are executed after the window is created.
+
+                                        *window.on_update*
+on_update           function[] (default: {helper.window.win_update_header, helper.window.win_update_footer})
+    A list of functions that are executed after the window's content is updated.
+
+                                        *action.on_start*
+on_start            function[] (default: {})
+    A list of functions that are executed after a hover session starts.
+
+                                        *action.on_stop*
+on_stop             function[] (default: {})
+    A list of functions that are executed before a hover session stops.
+
+                                        *action.on_next*
+on_next             function[] (default: {})
+    A list of functions that are executed after navigating to the next page.
+
+                                        *action.on_prev*
+on_prev             function[] (default: {})
+    A list of functions that are executed after navigating to the previous page.
+
+                                        *action.on_pin*
+on_pin              function[] (default: {helper.action.win_goto_top_right})
+    A list of functions that are executed after the hover window is pinned.
+
+                                        *action.on_unpin*
+on_unpin            function[] (default: {helper.action.win_goto_cursor})
+    A list of functions that are executed after the hover window is unpinned.
+
+                                        *action.on_hide*
+on_hide             function[] (default: {})
+    A list of functions that are executed before the hover window is hidden.
+
+                                        *action.on_scroll*
+on_scroll           function[] (default: {helper.action.win_update_footer})
+    A list of functions that are executed after scrolling occurs in the hover window.
+
+                                        *popup_event*
+popup_event         string[] (default: {"CursorHold"})
+    Neovim events that open the hover window and start the session.
+
+                                        *close_event*
+close_event         string[] (default: {"CursorMoved", "CursorMovedI", "InsertEnter"})
+    Neovim events that close the hover window and terminate the session.
+
+                                        *source.diagnostic*
+diagnostic          table
+    Configuration for the "diagnostic" source.
+	- name: string (default: diagnostic)
+    - enable: function or boolean (default: helper.diagnostic.enable)  
+    - priority: number (default: 50)  
+      The priority of the source. Higher priority sources are displayed first.
+    - placeholder: string (default: "[loading...]")  
+      The text displayed while fetching content.
+    - fetch: function (default: helper.diagnostic.fetch)  
+      The function that fetches content from the diagnostic source.
+    - filter: function (default: helper.diagnostic.filter)  
+      Optional function to filter fetched content.
+    - format: function (default: helper.diagnostic.format)  
+      Optional function to format fetched content.
+
+                                        *source.document*
+document            table
+    Configuration for the "document" source.
+	- name: string (default: "document")
+    - enable: function or boolean (default: helper.document.enable)  
+    - priority: number (default: 60)  
+    - placeholder: string (default: "[loading...]")  
+    - fetch: function (default: helper.document.fetch)  
+      The function that fetches content from the document source.
+
+======================================================================
+3. Usage 											*hover-usage*
+======================================================================
+
+Hover.nvim should work out of the box. Simply call:
+>lua
+	require("hover").setup({
+		-- your preferred config here or leave it empty
+	})
+<lua
+Then you are ready to interact hover.nvim with user commands.
+
+
+======================================================================
+4. Commands 										*hover-commands*
+======================================================================
+
+*DSHoverStart*
+	Start fetching contents and displaying window on hover
+
+*DSHoverStop*
+	Stop fetching contents and displaying window on hover
+
+*DSHoverToggle*
+	Toggle start or stop
+
+*DSHoverNext*
+	Go to next page of hover window
+
+*DSHoverPrev*
+	Go to prev page of hover window
+
+*DSHoverPin*
+	Pin the hover window. Such that close_event (defaults to cursor move 
+	and insert mode enter) will not close the window.
+
+*DSHoverUnpin*
+	Unpin the hover window. If hover window was pinned, it will 
+	return to normal behavior. Otherwise, no side effect occur.
+
+*DSHoverHide*
+	Hide the hover window. Will generate new window once popup_event 
+	(defaults to CursorHold) is triggered.
+
+*DSHoverScrollUp*
+	Scroll up the hover window.
+
+*DSHoverScrollDown*
+	Scroll down the hover window.
+
+
+======================================================================
+5. Callback											*hover-callback*
+======================================================================
+
+Hover.nvim has a few helper functions located at "hover.config.helper.xxx".
+They are used as the default configuration's callback functions.
+
+User are welcome to write their own callback function to customize the plugin.
+Every functions placed into on_xxx table will recieve two paramaters:
+
+first-paramater					table
+	- winnr: number
+	window's id for current hover window
+	- bufnr: number
+	buffer's id for current hover window
+
+second-paramater				table
+	- name: string
+	name of the source that playing on the current page
+	- priority: number
+	priority of the source
+	- index: number
+	index of the current playing content. this does not necessarily
+	equals to the page index, since there might exist some pages that do
+	not contain any information, and been automatically skipped while swith pages.
+	- size: number
+	size of contents been fetched for current hover window.
+	- env: table
+	equivalent to the paramater recieved by callback
+	see :help nvim_create_autocmd
+
+======================================================================
+6. Source 											*hover-source*
+======================================================================
+
+Here is an example of adding your own source:
+>lua
+	require("hover").setup({
+		source = {
+			dummy = {
+				name = "My own source",
+				enable = true,
+				priority = 0,
+				placeholder = "sleeping..."
+				fetch = function(env) 
+					require("plenary.async").util.sleep(2000)	-- sleep 2 secs
+					return { "Hello, world! I'm awake!" } 
+				end
+			}
+		}
+	})
+<lua
+
+The five fields of dummy are the fundamental requirement for a source.
+You could add more helper fields, but these five fields can't be missed.
+
+name				string
+	the name. by default setting, will shown on window's title
+
+enable				function or boolean
+	the function will accept an env from autocmds's callback paramater. (see :help nvim_create_autocmd)
+	or simply boolean
+
+priority			number
+	the smallest the number is, the highest priority will have
+
+placeholder 		string
+	content to display before fetch function return
+
+fetch				function
+	accept an env comes from autocmd's callback paramater. (see: help nvim_create_autocmd)
+	and return the a TABLE of strings. Each string will acquire its own page from hover window.
+	You could return empty table on fetch nothing. If an error occur within function body, a
+	notification is send through vim.notify, and behaives as if you return empty table.
+
+======================================================================
+7. License											*hover-license*
+======================================================================
+
+This plugin is licensed under the MIT License:
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
