@@ -36,11 +36,19 @@ function M.parse_highlight_inlined_text(text)
 		height = 0
 	}
 
+	local stack = {}
+
 	for i, line in ipairs(iter_lines(text)) do
+		local tmp = #highlights
+
 		-- parse in-text XML-like color tags
 		local match
 		repeat
 			line, match = line:gsub("(.-)<([a-zA-Z@.]+)>(.-)</>(.*)", function(before, highlight, inner, after)
+				if #stack ~= 0 then
+					error("tag '" .. highlight .. "' overlapped with tag '" .. stack[#stack] .. "'")
+				end
+
 				table.insert(highlights, {
 					highlight,				-- highlight group name
 					i - 1,					-- line number in buffer (0-indexed)
@@ -50,6 +58,50 @@ function M.parse_highlight_inlined_text(text)
 				return before .. inner .. after
 			end)
 		until match == 0
+
+		repeat
+			line, match = line:gsub("(.-)<([a-zA-Z@.]+)>(.*)", function(before, highlight, after)
+				if #stack ~= 0 then
+					error("tag '" .. highlight "' overlapped with tag '" .. stack[#stack] "'")
+				end
+				
+				table.insert(stack, highlight)
+				table.insert(highlights, {
+					highlight,
+					i - 1,
+					#before,
+					-1
+				})
+				return before .. after
+			end)
+		until match == 0
+
+		repeat
+			line, match = line:gsub("(.-)</>(.*)", function(before, after)
+				local highlight = table.remove(stack)
+				if highlight == nil then
+					error("unmatched closing tag '</>' at line " .. i .. ", position " .. #before)
+				end
+
+				table.insert(highlights, {
+					highlight,
+					i - 1,
+					0,
+					#before,
+				})
+
+				return before .. after
+			end)
+		until match == 0
+
+		if #highlights == tmp and #stack ~= 0 then
+			table.insert(highlights, {
+				stack[#stack],
+				i - 1,
+				0,
+				-1
+			})
+		end
 
 		-- store line without tag
 		table.insert(lines, line)
@@ -66,6 +118,10 @@ function M.parse_highlight_inlined_text(text)
 		if length > win_size.width then
 			win_size.width = length
 		end
+	end
+
+	if #stack ~= 0 then
+		error("unclosed highligh group: " .. stack[#stack])
 	end
 
 	win_size.width = math.max(config.get().window.min_width, math.min(win_size.width, config.get().window.max_width))
